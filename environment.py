@@ -5,6 +5,8 @@ from gym.spaces import Discrete, Box, Dict, MultiDiscrete, Tuple
 
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
+from utils import get_observation_space_per_agent
+
 
 class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
     """
@@ -28,22 +30,13 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         self.action_space = Dict({agent_id: Discrete(3) for agent_id in self._agent_ids})
 
         # Define the observation space of each agent.
-        self.observation_space = Dict({agent_id: Discrete(2) for agent_id in self._agent_ids})
+        # I think that currently Q-mix supports homogeneous agents only. So I will tweak the obs space to be the same
+        # for every agent.
+        # self.observation_space = Dict({agent_id: Discrete(2) for agent_id in self._agent_ids})
+        self.observation_space = Dict({agent_id: get_observation_space_per_agent(self.topology)
+                                       for agent_id in self._agent_ids})
 
         self._spaces_in_preferred_format = True
-
-        # use the following to define different observation spaces per agent
-        # observation_space = Dict(
-        #     {
-        #         "obs": Dict(
-        #             {
-        #                 "test": Dict({"a": Discrete(2), "b": MultiDiscrete([2, 3, 4])}),
-        #                 "state": MultiDiscrete([2, 2, 2]),
-        #             }
-        #         ),
-        #         "action_mask": None,
-        #     }
-        # )
 
         # Initialize evaluation environment
         self.sfc_dataset = env_config['dataset']
@@ -150,14 +143,14 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
 
     def place_src_dst(self, sfc):
         # place the DummyIn
-        action = [PoP.id for PoP in self.topology.G.nodes if (PoP.longitude, PoP.latitude) == (sfc.src[0], sfc.src[1])][
-            0]
+        action = [PoP.id for PoP in self.topology.G.nodes
+                  if (PoP.longitude, PoP.latitude) == (sfc.src[0], sfc.src[1])][0]
         encoding = self.encode_action(action)
         _ = self.topology.node_assignment(encoding, sfc.vnfs[0])
 
         # place the DummyOut
-        action = [PoP.id for PoP in self.topology.G.nodes if (PoP.longitude, PoP.latitude) == (sfc.dst[0], sfc.dst[1])][
-            0]
+        action = [PoP.id for PoP in self.topology.G.nodes
+                  if (PoP.longitude, PoP.latitude) == (sfc.dst[0], sfc.dst[1])][0]
         encoding = self.encode_action(action)
         _ = self.topology.node_assignment(encoding, sfc.vnfs[-1])
 

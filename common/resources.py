@@ -166,48 +166,15 @@ class Topology:
 
             self.G.add_edge(PoP3, PoP4, Link=Link34)
 
-        elif self.type == 'MESH_LARGE':
+        elif self.type == 'MESH_THREE':
             PoP1 = PoP(id=0, capacity=1, longitude=0.1, latitude=0.4, n_servers=10)
             PoP2 = PoP(id=1, capacity=1, longitude=0.7, latitude=0.2, n_servers=10)
             PoP3 = PoP(id=2, capacity=1, longitude=0.5, latitude=0.5, n_servers=10)
-            PoP4 = PoP(id=3, capacity=1, longitude=0.1, latitude=0.6, n_servers=10)
-            PoP5 = PoP(id=4, capacity=1, longitude=0.9, latitude=0.7, n_servers=10)
-
-            PoP6 = PoP(id=5, capacity=1, longitude=0.1, latitude=0.3, n_servers=10)
-            PoP7 = PoP(id=6, capacity=1, longitude=0.7, latitude=0.6, n_servers=10)
-            PoP8 = PoP(id=7, capacity=1, longitude=0.3, latitude=0.5, n_servers=10)
-            PoP9 = PoP(id=8, capacity=1, longitude=0.2, latitude=0.6, n_servers=10)
-            PoP10 = PoP(id=9, capacity=1, longitude=0.4, latitude=0.7, n_servers=10)
 
             Link12 = Link(id=0, capacity=1, PoP1=PoP1, PoP2=PoP2)
             Link13 = Link(id=1, capacity=1, PoP1=PoP1, PoP2=PoP3)
             self.G.add_edge(PoP1, PoP2, Link=Link12)
             self.G.add_edge(PoP1, PoP3, Link=Link13)
-
-            Link23 = Link(id=2, capacity=1, PoP1=PoP2, PoP2=PoP3)
-            Link25 = Link(id=3, capacity=1, PoP1=PoP2, PoP2=PoP5)
-            self.G.add_edge(PoP2, PoP3, Link=Link23)
-            self.G.add_edge(PoP2, PoP5, Link=Link25)
-
-            Link34 = Link(id=4, capacity=1, PoP1=PoP3, PoP2=PoP4)
-            self.G.add_edge(PoP3, PoP4, Link=Link34)
-
-            # Link PoP 5 with PoP 6
-            Link56 = Link(id=5, capacity=1, PoP1=PoP5, PoP2=PoP6)
-            self.G.add_edge(PoP5, PoP6, Link=Link56)
-
-            Link67 = Link(id=6, capacity=1, PoP1=PoP6, PoP2=PoP7)
-            Link68 = Link(id=7, capacity=1, PoP1=PoP6, PoP2=PoP8)
-            self.G.add_edge(PoP6, PoP7, Link=Link67)
-            self.G.add_edge(PoP6, PoP8, Link=Link68)
-
-            Link78 = Link(id=8, capacity=1, PoP1=PoP7, PoP2=PoP8)
-            Link710 = Link(id=9, capacity=1, PoP1=PoP7, PoP2=PoP10)
-            self.G.add_edge(PoP7, PoP8, Link=Link78)
-            self.G.add_edge(PoP7, PoP10, Link=Link710)
-
-            Link910 = Link(id=10, capacity=1, PoP1=PoP9, PoP2=PoP10)
-            self.G.add_edge(PoP9, PoP10, Link=Link910)
 
         else:
             raise NotImplementedError

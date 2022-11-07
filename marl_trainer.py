@@ -15,7 +15,7 @@ from gym.spaces import Tuple
 dataset = dummy_payload(n_sfcs=10000, min_n_vnfs=2, max_n_vnfs=5)
 
 # create the topology
-topology = Topology('MESH_LARGE')
+topology = Topology('MESH_THREE')
 
 
 if __name__ == '__main__':
@@ -31,8 +31,8 @@ if __name__ == '__main__':
     ray.init()
 
     grouping = {"group_1": list(range(len(topology.G.nodes)))}
-    obs_space = Tuple([env.observation_space[0] for _ in range(10)])
-    act_space = Tuple([env.action_space[0] for _ in range(10)])
+    obs_space = Tuple([env.observation_space[0] for _ in range(len(env.topology.G.nodes))])
+    act_space = Tuple([env.action_space[0] for _ in range(len(env.topology.G.nodes))])
 
     register_env(env_name,
                  lambda config: MultiAgentSfcPartitioningEnv(config).with_agent_groups(grouping,

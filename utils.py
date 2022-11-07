@@ -4,6 +4,8 @@ import numpy as np
 from pydantic import BaseModel
 from typing import List, Optional
 
+from gym.spaces import Box, Discrete, Dict
+
 
 def save_object(obj, filename):
     cwd = os.getcwd()
@@ -11,6 +13,44 @@ def save_object(obj, filename):
 
     with open(filepath, 'wb') as outp:
         pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
+
+
+def get_observation_space_per_agent(topology):
+    local_observation = {'in_shortest_path': Discrete(2),
+                         'hosts_previous': Discrete(2),
+                         'hosts_another': Discrete(2),
+                         'longitude': Box(low=0.0, high=1.0, shape=(1,)),
+                         'latitude': Box(low=0.0, high=1.0, shape=(1,))}
+
+    # Create one observation input for each server.
+    pop = list(topology.G.nodes)[0]
+    for idx, s_capacity in enumerate(pop.s_capacities):
+        local_observation['server' + str(idx)] = Box(low=0.0, high=1.0, shape=(1,))
+
+    sfc_observation = {'sfc_length': Box(low=0.0, high=1.0, shape=(1,)),
+                       'sfc_src_longitude': Box(low=0.0, high=1.0, shape=(1,)),
+                       'sfc_src_latitude': Box(low=0.0, high=1.0, shape=(1,)),
+                       'sfc_dst_longitude': Box(low=0.0, high=1.0, shape=(1,)),
+                       'sfc_dst_latitude': Box(low=0.0, high=1.0, shape=(1,))}
+
+    vnf_observation = {'vnf_demand': Box(low=0.0, high=1.0, shape=(1,)),
+                       'vnf_ingress': Box(low=0.0, high=1.0, shape=(1,)),
+                       'vnf_egress': Box(low=0.0, high=1.0, shape=(1,)),
+                       'vnf_order': Box(low=0.0, high=1.0, shape=(1,))}
+
+    # Create one observation input for each neighbor.
+    neighbor_observation = {}
+    neighbors = [p for p in topology.G.nodes if p != pop]
+    for idx, n in enumerate(neighbors):
+        neighbor_observation['capacity' + str(idx)] = Box(low=0.0, high=1.0, shape=(1,))
+        neighbor_observation['longitude' + str(idx)] = Box(low=0.0, high=1.0, shape=(1,))
+        neighbor_observation['latitude' + str(idx)] = Box(low=0.0, high=1.0, shape=(1,))
+
+    observation = {}
+    for d in [local_observation, sfc_observation, vnf_observation, neighbor_observation]:
+        observation.update(d)
+
+    return Dict({'obs': Dict(observation)})
 
 
 # class LocalState(BaseModel):
