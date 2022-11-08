@@ -35,10 +35,11 @@ if __name__ == '__main__':
     act_space = Tuple([env.action_space[0] for _ in range(len(env.topology.G.nodes))])
 
     register_env(env_name,
-                 lambda config: MultiAgentSfcPartitioningEnv(config).with_agent_groups(grouping,
-                                                                                       obs_space=obs_space,
-                                                                                       act_space=act_space
-                                                                                       )
+                 lambda config: MultiAgentSfcPartitioningEnv(config)
+                 .with_agent_groups(grouping,
+                                    obs_space=obs_space,
+                                    act_space=act_space
+                                    )
                  )
 
     qmix_config = (

@@ -56,7 +56,7 @@ class PoP(Resource):
 
         # new in version 0.3
         self.n_servers = n_servers
-        self.s_capacities = []
+        self.s_capacities = [0 for _ in range(n_servers)]
         self.l_capacities = []
 
     def can_fit(self, request) -> bool:
