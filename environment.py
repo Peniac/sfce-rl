@@ -110,19 +110,18 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         else:
             self.next_vnf()
 
-        state_, rewards, dones, info = {}, {}, {}, {}
+        next_state, rewards, dones, info = {}, {}, {}, {}
 
         for agent_id in self._agent_ids:
-            # state_[agent_id] = random.choice([0, 1])
-            state_[agent_id] = self.get_observation_per_agent(agent_id=agent_id)
+            next_state[agent_id] = self.get_observation_per_agent(agent_id=agent_id)
             rewards[agent_id] = reward
             dones[agent_id] = done
         dones['__all__'] = done
 
-        print(f'next observations are {state_}')
+        print(f'next observations are {next_state}')
         print(f'rewards are {rewards}')
         print(f'dones are {dones}')
-        return state_, rewards, dones, info
+        return next_state, rewards, dones, info
 
     def encode_action(self, action):
         encoding = np.zeros(len(self.topology.G.nodes))
@@ -167,81 +166,39 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         local_observation = {'in_shortest_path': int(in_shortest_path),
                              'hosts_previous': int(hosts_previous),
                              'hosts_another': int(hosts_another),
-                             'longitude': np.array(pop.longitude, dtype=np.float32),
-                             'latitude': np.array(pop.latitude, dtype=np.float32)}
+                             'longitude': [pop.longitude],
+                             'latitude': [pop.latitude]}
 
         # Create one observation input for each server.
         for idx, s_capacity in enumerate(pop.s_capacities):
-            local_observation['server' + str(idx)] = np.array(s_capacity, dtype=np.float32)
+            local_observation['server' + str(idx)] = [s_capacity]
 
-        sfc_observation = {'sfc_length': np.array(self.current_sfc.length / self.current_sfc.dataset.max_n_vnfs, dtype=np.float32),
-                           'sfc_src_longitude': np.array(self.current_sfc.src[0], dtype=np.float32),
-                           'sfc_src_latitude': np.array(self.current_sfc.src[1], dtype=np.float32),
-                           'sfc_dst_longitude': np.array(self.current_sfc.dst[0], dtype=np.float32),
-                           'sfc_dst_latitude': np.array(self.current_sfc.dst[1], dtype=np.float32)}
+        sfc_observation = {'sfc_length': [self.current_sfc.length / self.current_sfc.dataset.max_n_vnfs],
+                           'sfc_src_longitude': [self.current_sfc.src[0]],
+                           'sfc_src_latitude': [self.current_sfc.src[1]],
+                           'sfc_dst_longitude': [self.current_sfc.dst[0]],
+                           'sfc_dst_latitude': [self.current_sfc.dst[1]]}
 
-        vnf_observation = {'vnf_demand': np.array(self.current_vnf.demand, dtype=np.float32),
-                           'vnf_ingress': np.array(self.current_vnf.ingress, dtype=np.float32),
-                           'vnf_egress': np.array(self.current_vnf.egress, dtype=np.float32),
-                           'vnf_order': np.array(self.current_vnf.order / self.current_sfc.length, dtype=np.float32)}
+        vnf_observation = {'vnf_demand': [self.current_vnf.demand],
+                           'vnf_ingress': [self.current_vnf.ingress],
+                           'vnf_egress': [self.current_vnf.egress],
+                           'vnf_order': [self.current_vnf.order / self.current_sfc.length]}
 
         # Create one observation input for each neighbor.
         neighbor_observation = {}
         neighbors = [p for p in self.topology.G.nodes if p != pop]
         for idx, n in enumerate(neighbors):
-            neighbor_observation['capacity' + str(idx)] = np.array(sum(n.s_capacities) / len(n.s_capacities), dtype=np.float32)
-            neighbor_observation['longitude' + str(idx)] = np.array(n.longitude, dtype=np.float32)
-            neighbor_observation['latitude' + str(idx)] = np.array(n.latitude, dtype=np.float32)
+            neighbor_observation['capacity' + str(idx)] = [sum(n.s_capacities) / len(n.s_capacities)]
+            neighbor_observation['longitude' + str(idx)] = [n.longitude]
+            neighbor_observation['latitude' + str(idx)] = [n.latitude]
 
         observation = {}
         for d in [local_observation, sfc_observation, vnf_observation, neighbor_observation]:
             observation.update(d)
 
-        for k, v in observation.items():
-            if not isinstance(v, int):
-                print(v.dtype)
-        return OrderedDict({'obs': OrderedDict(observation)})
+        # for k, v in observation.items():
+        #     if not isinstance(v, int):
+        #         print(v.dtype)
 
-    # def get_observation_per_agent(self,
-    #                               agent_id: int = None):
-    #     pop = list(self.topology.G.nodes)[agent_id]
-    #     in_shortest_path, hosts_previous, hosts_another = compute_flags(topology=self.topology,
-    #                                                                     pop=pop,
-    #                                                                     vnf=self.current_vnf,
-    #                                                                     sfc=self.current_sfc)
-    #     local_observation = {'in_shortest_path': int(in_shortest_path),
-    #                          'hosts_previous': int(hosts_previous),
-    #                          'hosts_another': int(hosts_another),
-    #                          'longitude': pop.longitude,
-    #                          'latitude': pop.latitude}
-    #
-    #     # Create one observation input for each server.
-    #     for idx, s_capacity in enumerate(pop.s_capacities):
-    #         local_observation['server' + str(idx)] = s_capacity
-    #
-    #     sfc_observation = {'sfc_length': self.current_sfc.length / self.current_sfc.dataset.max_n_vnfs,
-    #                        'sfc_src_longitude': self.current_sfc.src[0],
-    #                        'sfc_src_latitude': self.current_sfc.src[1],
-    #                        'sfc_dst_longitude': self.current_sfc.dst[0],
-    #                        'sfc_dst_latitude': self.current_sfc.dst[1]}
-    #
-    #     vnf_observation = {'vnf_demand': self.current_vnf.demand,
-    #                        'vnf_ingress': self.current_vnf.ingress,
-    #                        'vnf_egress': self.current_vnf.egress,
-    #                        'vnf_order': self.current_vnf.order / self.current_sfc.length}
-    #
-    #     # Create one observation input for each neighbor.
-    #     neighbor_observation = {}
-    #     neighbors = [p for p in self.topology.G.nodes if p != pop]
-    #     for idx, n in enumerate(neighbors):
-    #         neighbor_observation['capacity' + str(idx)] = sum(n.s_capacities) / len(n.s_capacities)
-    #         neighbor_observation['longitude' + str(idx)] = n.longitude
-    #         neighbor_observation['latitude' + str(idx)] = n.latitude
-    #
-    #     observation = {}
-    #     for d in [local_observation, sfc_observation, vnf_observation, neighbor_observation]:
-    #         observation.update(d)
-    #
-    #     for k, v in observation.items():
-    #         print(type(v))
-    #     return OrderedDict({'obs': OrderedDict(observation)})
+        # return OrderedDict({'obs': OrderedDict(observation)})
+        return {'obs': observation}

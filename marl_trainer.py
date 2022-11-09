@@ -20,19 +20,26 @@ topology = Topology('MESH_THREE')
 
 if __name__ == '__main__':
     # Create and register the environment.
-    def env_creator(config):
-        return MultiAgentSfcPartitioningEnv(env_config=config)
-    env_config = {'topology': topology, 'dataset': dataset, "disable_env_checking": True}
-    env_name = "MultiAgentSfcPartitioningEnv"
-    register_env(env_name, env_creator)
+    # def env_creator(config):
+    #     return MultiAgentSfcPartitioningEnv(env_config=config)
 
-    env = MultiAgentSfcPartitioningEnv(env_config=env_config)
+    env_config = {'topology': topology,
+                  'dataset': dataset,
+                  'disable_env_checking': True,
+                  'agents': [idx for idx, pop in enumerate(topology.G.nodes)]}
+    env_name = "MultiAgentSfcPartitioningEnv"
+
+    # register_env(env_name, env_creator)
 
     ray.init()
 
+    env = MultiAgentSfcPartitioningEnv(env_config=env_config)
+    # obs = env.reset()
+    # new_state, reward, done, info = env.step({0: 0, 1: 1, 2: 1})
+
     grouping = {"group_1": list(range(len(topology.G.nodes)))}
-    obs_space = Tuple([env.observation_space[0] for _ in range(len(env.topology.G.nodes))])
-    act_space = Tuple([env.action_space[0] for _ in range(len(env.topology.G.nodes))])
+    obs_space = Tuple([env.observation_space[0] for _ in range(len(topology.G.nodes))])
+    act_space = Tuple([env.action_space[0] for _ in range(len(topology.G.nodes))])
 
     register_env(env_name,
                  lambda config: MultiAgentSfcPartitioningEnv(config)
@@ -50,16 +57,16 @@ if __name__ == '__main__':
                      disable_env_checking=True)
         .rollouts(num_envs_per_worker=1)
     )
+
     qmix_config.simple_optimizer = True  # Avoid GPU engagement.
     trainer = qmix_config.build()
 
-    for _ in range(10):
+    for _ in range(1):
         results = trainer.train()
 
     rewards_history = pd.DataFrame(results['hist_stats']['episode_reward'])
     rewards_history.plot()
     plt.show()
 
-    # trainer.train()["episode_reward_mean"]
     trainer.stop()
     ray.shutdown()
