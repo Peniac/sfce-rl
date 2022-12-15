@@ -1,9 +1,6 @@
 import numpy as np
-import random
-from typing import List
-from gym.spaces import Discrete, Dict
-from collections import OrderedDict
 
+from gym.spaces import Discrete, Dict
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
 
 from utils import get_observation_space_per_agent, compute_flags
@@ -33,7 +30,6 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         # Define the observation space of each agent.
         # I think that currently Q-mix supports homogeneous agents only. So I will tweak the obs space to be the same
         # for every agent.
-        # self.observation_space = Dict({agent_id: Discrete(2) for agent_id in self._agent_ids})
         self.observation_space = Dict({agent_id: get_observation_space_per_agent(self.topology)
                                        for agent_id in self._agent_ids})
 
@@ -53,6 +49,8 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
 
         # move to the next SFC of the training dataset
         self.sfc_index += 1
+        if self.sfc_index == len(self.sfc_dataset.payload) - 1:
+            self.sfc_index = 0
         self.current_sfc = self.sfc_dataset.payload[self.sfc_index]
         # and start with its first VNF
         self.vnf_index = 1
@@ -63,9 +61,8 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
 
         state = {}
         for agent_id in self._agent_ids:
-            # state[agent_id] = random.choice([0, 1])
             state[agent_id] = self.get_observation_per_agent(agent_id=agent_id)
-        print(f'Resetting to state {state}')
+
         return state
 
     def next_vnf(self):
@@ -74,7 +71,6 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         self.current_vnf = self.current_sfc.vnfs[self.vnf_index]
 
     def step(self, actions):
-        print(f'Current sfc: {self.current_sfc}, Current vnf: {self.current_vnf.order}')
         # Flag that marks the termination of an episode.
         done = False
 
@@ -87,21 +83,21 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         node_success = self.topology.node_assignment(vnf_assignment_encoding, self.current_vnf)
 
         if node_success and self.current_vnf.is_last:
-            # link_success, hop_count, optimal_hop_count = self.topology.heuristic_link_assignment(self.current_sfc)
-            # if link_success:
-            #     self.topology.hosted_sfcs.append(self.current_sfc)
-            #     reward = 10 * (1 + optimal_hop_count) / (1 + hop_count)
-            # else:
-            #     reward = -10
-            reward = 10
+            link_success, hop_count, optimal_hop_count = self.topology.heuristic_link_assignment(self.current_sfc)
+            if link_success:
+                self.topology.hosted_sfcs.append(self.current_sfc)
+                reward = 10 * (1 + optimal_hop_count) / (1 + hop_count)
+            else:
+                reward = -10
+            # reward = 10
 
-            # self.topology.cancel_temp_assignments(link_success)
+            self.topology.cancel_temp_assignments(link_success)
 
         elif node_success:
             reward = 0.1
 
         else:
-            # self.topology.cancel_temp_assignments(node_success)
+            self.topology.cancel_temp_assignments(node_success)
             reward = -10
 
         # move to next state
@@ -118,9 +114,6 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
             dones[agent_id] = done
         dones['__all__'] = done
 
-        print(f'next observations are {next_state}')
-        print(f'rewards are {rewards}')
-        print(f'dones are {dones}')
         return next_state, rewards, dones, info
 
     def encode_action(self, action):
@@ -138,7 +131,6 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         """
         # Gets key with max value, ties broken arbitrarily.
         chosen_agent_id = max(actions, key=actions.get)
-        print(f'chosen agent is {chosen_agent_id}')
         return chosen_agent_id
 
     def place_src_dst(self):
@@ -196,9 +188,4 @@ class MultiAgentSfcPartitioningEnv(MultiAgentEnv):
         for d in [local_observation, sfc_observation, vnf_observation, neighbor_observation]:
             observation.update(d)
 
-        # for k, v in observation.items():
-        #     if not isinstance(v, int):
-        #         print(v.dtype)
-
-        # return OrderedDict({'obs': OrderedDict(observation)})
         return {'obs': observation}

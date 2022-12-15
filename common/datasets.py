@@ -46,8 +46,16 @@ def dummy_payload(n_sfcs:int, min_n_vnfs: int, max_n_vnfs:int):
 		LATENCY = random.randint(50, 200) / 200
 		LIFESPAN = random.randint(10, 100) / 100
 		ARRIVAL = random.randint(1, 100)
-		SRC = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5)])
-		DST = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5)])
+
+		# MESH THREE
+		# SRC = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5)])
+		# DST = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5)])
+
+		# MESH LARGE
+		SRC = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5), (0.1, 0.6), (0.9, 0.7),
+							 (0.1, 0.3), (0.7, 0.6), (0.3, 0.5), (0.2, 0.6), (0.4, 0.7)])
+		DST = random.choice([(0.1, 0.4), (0.7, 0.2), (0.5, 0.5), (0.1, 0.6), (0.9, 0.7),
+							 (0.1, 0.3), (0.7, 0.6), (0.3, 0.5), (0.2, 0.6), (0.4, 0.7)])
 
 		dummy_SFC = SFC(id, INGRESS, vnf_list, LATENCY, LIFESPAN, ARRIVAL, SRC, DST)
 		dummy_SFC.dataset = dummy # assign the dataset to the SFC 

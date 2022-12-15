@@ -1,20 +1,26 @@
 import pickle
 import os
+
+import networkx as nx
 import numpy as np
-from pydantic import BaseModel
-from typing import List, Optional
+
 from gym.spaces import Box, Discrete, Dict
 
 
 def save_object(obj, filename):
     cwd = os.getcwd()
-    filepath = os.path.join(cwd, 'results/objects', filename)
+    filepath = os.path.join(cwd, 'results', filename)
 
     with open(filepath, 'wb') as outp:
         pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
 
 
 def get_observation_space_per_agent(topology):
+    """
+    Currently only 'fingerprint' is missing.
+    :param topology:
+    :return:
+    """
     local_observation = {'in_shortest_path': Discrete(2),
                          'hosts_previous': Discrete(2),
                          'hosts_another': Discrete(2),
@@ -58,83 +64,43 @@ def compute_flags(topology=None,
                   vnf=None,
                   sfc=None):
 
-    in_shortest_path, hosts_another, hosts_previous = 0, 0, 0
-    return in_shortest_path, hosts_another, hosts_previous
+    in_shortest_path = _in_shortest_path(topology=topology,
+                                         pop=pop,
+                                         sfc=sfc)
 
-# class LocalState(BaseModel):
-#     server_capacities: List[float]
-#     link_capacities: List[float]
-#     longitude: float
-#     latitude: float
-#     hosts_another: Optional[bool]
-#     hosts_previous: Optional[bool]
-#     in_shortest_path: Optional[bool]
-#
-#
-# class CondensedState(BaseModel):
-#     capacity: float
-#     longitude: float
-#     latitude: float
-#
-#
-# class SfcState(BaseModel):
-#     # current sfc state
-#     sfc_length: float
-#     sfc_src_longitude: float
-#     sfc_src_latitude: float
-#     sfc_dst_longitude: float
-#     sfc_dst_latitude: float
-#
-#
-# class VnfState(BaseModel):
-#     # current vnf state
-#     vnf_demand: float
-#     vnf_ingress: float
-#     vnf_egress: float
-#     vnf_order: float
-#
-#
-# class SharedState(BaseModel):
-#     vnf_state: VnfState
-#     sfc_state: SfcState
-#
-#
-# class Fingerprint(BaseModel):
-#     epsilon: float
-#
-#
-# class FullLocalState(BaseModel):
-#     shared_state: SharedState
-#     local_state: LocalState
-#     condensed_states: List[CondensedState]
-#     fingerprint: Fingerprint
-#
-#     def to_numpy(self):
-#         shared_state_list = list(self.shared_state.vnf_state.dict().values()) + \
-#                             list(self.shared_state.sfc_state.dict().values())
-#
-#         local_state_list = self.local_state.server_capacities + \
-#                            self.local_state.link_capacities + \
-#                            [self.local_state.longitude, self.local_state.latitude] + \
-#                            [self.local_state.hosts_another, \
-#                             self.local_state.hosts_previous, \
-#                             self.local_state.in_shortest_path]
-#
-#         condensed_state_list = [i for cds in self.condensed_states for i in cds.dict().values()]
-#
-#         fingerprint_list = list(self.fingerprint.dict().values())
-#
-#         full_local_state_list = shared_state_list + local_state_list + condensed_state_list + fingerprint_list
-#
-#         return np.array(full_local_state_list)
+    hosts_previous = _hosts_previous(pop=pop,
+                                     vnf=vnf,
+                                     sfc=sfc)
+    hosts_another = 0
+
+    return in_shortest_path, hosts_previous, hosts_another
 
 
-def moving_average(mylist):
-    avg = [mylist[0]]
-    curr_sum = mylist[0]
+def _hosts_previous(pop=None,
+                    vnf=None,
+                    sfc=None):
+    hosts_previous = (1 if sfc.vnfs[vnf.order-1].assigned_to == pop else 0)
 
-    for i in range(1, len(mylist)):
-        curr_sum += mylist[i]
+    return hosts_previous
+
+
+def _in_shortest_path(topology=None,
+                      pop=None,
+                      sfc=None):
+    src = sfc.vnfs[0].assigned_to
+    dst = sfc.vnfs[-1].assigned_to
+    shortest_paths = nx.all_shortest_paths(topology.G, source=src, target=dst)
+    in_shortest_path = any([pop in path for path in shortest_paths])
+
+    return in_shortest_path
+
+
+def moving_average(my_list):
+    avg = [my_list[0]]
+    curr_sum = my_list[0]
+
+    for i in range(1, len(my_list)):
+        curr_sum += my_list[i]
         avg.append(curr_sum / i)
 
     return avg
