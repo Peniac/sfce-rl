@@ -13,7 +13,7 @@ from ray.rllib.algorithms.qmix import QMixConfig
 from gym.spaces import Tuple
 
 # create the SFC dataset
-dataset = dummy_payload(n_sfcs=4, min_n_vnfs=2, max_n_vnfs=5)
+dataset = dummy_payload(n_sfcs=10, min_n_vnfs=2, max_n_vnfs=5)
 
 # create the topology
 topology = Topology('MESH_LARGE')
@@ -58,15 +58,15 @@ if __name__ == '__main__':
     # 2    # 1000
     # 3    # > 8000
     # 4    #
-    qmix_config.exploration_config['epsilon_timesteps'] = 8000
+    qmix_config.exploration_config['epsilon_timesteps'] = 100_000
     qmix_config.exploration_config['final_epsilon'] = 0.00
     qmix_config.simple_optimizer = True  # Avoid GPU engagement.
-    qmix_config.model['lstm_cell_size'] = 16
+    qmix_config.model['lstm_cell_size'] = 8
 
     trainer = qmix_config.build()
 
     mean_rewards = {}
-    for j in range(10):
+    for j in range(110):
         # approx 250 episodes and 1000 time-steps per training iteration
         results = trainer.train()
         print(f'Iteration {j+1}')
